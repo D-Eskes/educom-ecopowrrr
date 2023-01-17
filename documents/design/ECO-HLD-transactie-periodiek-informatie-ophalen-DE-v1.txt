@@ -1,0 +1,21 @@
+ytitle Ecopowrrr
+
+entryspacing 1.3
+
+
+==Transactie: Periodiek informatie ophalen==
+actor User
+participant App
+participant Back End
+participant Smart Devices
+participant Postcode
+database Database
+
+Back End->Smart Devices: Haal informatie smart devices
+Smart Devices->Back End: Krijg informatie smart devices
+Back End->Database: Opslaan informatie van smart devices
+Back End->Database: Haal informatie productie en locatie
+Database->Back End: Krijg informatie productie en locatie
+Back End->Back End: Maak spreadsheets
+
+

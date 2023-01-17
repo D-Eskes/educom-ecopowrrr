@@ -1,0 +1,27 @@
+{
+  "name": "educom-ecopowrrr",
+  "version": "1.0.0",
+  "description": "<img src='./assets/eco-powrrr-logo.png'>",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "main": "nodemon index.js",
+    "client": "nodemon smart_device.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/D-Eskes/educom-ecopowrrr.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/D-Eskes/educom-ecopowrrr/issues"
+  },
+  "homepage": "https://github.com/D-Eskes/educom-ecopowrrr#readme",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongodb": "^4.13.0"
+  }
+}

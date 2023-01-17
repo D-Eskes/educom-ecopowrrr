@@ -1,0 +1,23 @@
+title Ecopowrrr
+
+entryspacing 1.3
+
+
+==Transactie: Aansluiten Klant==
+actor User
+participant App
+participant Back End
+participant Smart Device
+participant Postcode
+database Database
+
+
+User->App: Invullen form 
+App->Back End: Opsturen form data
+Back End->Postcode: Haal adres en geoinformatie
+Postcode->Back End: Krijg adres en geoinformatie
+Back End->Database: Opslaan klant informatie
+Back End->Smart Device: Stuur activatie bericht
+
+
+
