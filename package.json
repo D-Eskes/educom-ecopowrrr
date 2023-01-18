@@ -21,7 +21,10 @@
   },
   "homepage": "https://github.com/D-Eskes/educom-ecopowrrr#readme",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.18.2",
-    "mongodb": "^4.13.0"
+    "mongodb": "^4.13.0",
+    "node-fetch": "^3.3.0",
+    "random-hash": "^4.0.1"
   }
 }

@@ -119,8 +119,7 @@ export default class mongo {
                 }
                 let db = client.db(database)
 
-                db.collection(collection)
-                .updateOne(query, newData, function(error, result) {
+                db.collection(collection).updateOne(query, newData, function(error, result) {
                     client.close()
                     if (error) {
                         reject({error: error})
