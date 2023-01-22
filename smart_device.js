@@ -115,7 +115,7 @@ app.get("/message", function(request, response) {
 
         const message = {
             "message_id": generateHash({length: 20}),
-            "device_id": result[0].id,
+            "device_id": result[0]._id,
             "device_status": result[0].status,
             "date": date,
             "devices": devices
@@ -150,6 +150,28 @@ app.put("/status", function(request, response) {
 
 
 })
+
+app.put("/status/device", function(request, response) {
+    const status = request.query.status
+    const serial_number = request.query.serial_number
+
+
+    if (!["active", "inactive"].includes(status)) {
+        response.send({error: "given status is neither 'active' nor 'inactive'"})
+    }
+    
+    device.update(serial_number, {status: status})
+    .then(function(result) {
+        console.log(result)
+        response.send(result)
+    })
+    .then(function(error) {
+        response.send(error)
+    })
+
+
+})
+
 
 
 
