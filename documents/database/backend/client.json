@@ -4,6 +4,20 @@
         "IBAN": "123456789",
         "postcode": "6363AZ",
         "number": "18",
-        "municiplaity": "Beekdaelen" 
+        "municipality": "Beekdaelen" 
+    },
+    "2": {
+        "name": "Karel",
+        "IBAN": "123456789",
+        "postcode": "6361AZ",
+        "number": "20",
+        "municipality": "Beekdaelen" 
+    },
+    "3": {
+        "name": "Demi",
+        "IBAN": "123456789",
+        "postcode": "1111AA",
+        "number": "2",
+        "municipality": "Diemen" 
     }
 }

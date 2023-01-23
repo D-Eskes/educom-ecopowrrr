@@ -7,6 +7,7 @@
   "scripts": {
     "main": "nodemon index.js",
     "client": "nodemon smart_device.js",
+    "dataset": "nodemon ./lib/create_dataset",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

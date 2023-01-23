@@ -1,7 +1,17 @@
 {
     "1": {
-        "client_id": "63c7ac6d8b017f46199c5483",
+        "client_id": "63cea0f65aed36b3275ed200",
         "serial_number": 123456789,
+        "type": "solar"
+    },
+    "2": {
+        "client_id": "63cea0f65aed36b3275ed201",
+        "serial_number": 123456788,
+        "type": "wind"
+    },
+    "3": {
+        "client_id": "63cea0f65aed36b3275ed202",
+        "serial_number": 123456787,
         "type": "solar"
     }
 }

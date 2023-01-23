@@ -28,23 +28,25 @@ app.get("/message", function(request, response) {
     const postcode = request.query.postcode
     const number = request.query.number
 
-    console.log("called 0")
+    // console.log("called 0")
 
     smart_device.retrieve(postcode, number)
     .then(async function(result) {
 
-        console.log("called 1")
+        // console.log("called 1")
 
-        if (!result)
+        if (result.length == 0) {
             response.send("No entry found")
+            return
+        }
 
-        console.log("called 2")
+        // console.log("called 2")
 
         const date = new Date();
 
         const devices = []
         for (let i=0; i < result[0].device.length; i++) {
-
+            
             const device_current = result[0].device[i]
             const output = device_current.device_output
             
