@@ -24,7 +24,7 @@ app.use((request, result, next) => {
     next()
 })
 
-function createWorkBook(sheets, name) {
+function createExcelSpreadsheet(sheets, name) {
 
     const workBook = XLSX.utils.book_new();
 
@@ -359,7 +359,6 @@ function getYearlyOutputAllDevices(year, devices) {
 }
 
 
-
 /// Price ///
 async function getMonthlyPrice(year, month, device) {
     const device_output = getDeviceOutputMonthLatest(year, month, device)
@@ -406,7 +405,7 @@ async function getYearlyPriceAllDevices(year, devices) {
 }
 
 
-
+/// Sheets ///
 function getSpreadsheetData1a() {
 
     return client.retrieve("").then(async function(result) {
@@ -595,7 +594,6 @@ function getSpreadsheetData3() {
 }
 
 
-
 async function createSpreadsheet1() {
 
     const sheets = []
@@ -617,7 +615,7 @@ async function createSpreadsheet1() {
     const minute = `${date.getMinutes()}`.padStart(2, "0")
 
     const date_string = `${year}${month}${day}_${hour}${minute}`
-    createWorkBook(sheets, `spreadsheet1_${date_string}`)
+    createExcelSpreadsheet(sheets, `spreadsheet1_${date_string}`)
 }
 
 async function createSpreadsheet2() {
@@ -637,7 +635,7 @@ async function createSpreadsheet2() {
     const minute = `${date.getMinutes()}`.padStart(2, "0")
 
     const date_string = `${year}${month}${day}_${hour}${minute}`
-    createWorkBook(sheets, `spreadsheet2_${date_string}`)
+    createExcelSpreadsheet(sheets, `spreadsheet2_${date_string}`)
 }
 
 async function createSpreadsheet3() {
@@ -658,7 +656,7 @@ async function createSpreadsheet3() {
     const minute = `${date.getMinutes()}`.padStart(2, "0")
 
     const date_string = `${year}${month}${day}_${hour}${minute}`
-    createWorkBook(sheets, `spreadsheet3_${date_string}`)
+    createExcelSpreadsheet(sheets, `spreadsheet3_${date_string}`)
 }
 
 
