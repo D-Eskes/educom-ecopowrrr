@@ -18,10 +18,21 @@ app.use((request, result, next) => {
     next()
 })
 
-function cleanName(name) {
-    return name.toLowerCase().trim()
-}
 
+function getLatestDeviceOutput(device_outputs) {
+    let latest 
+    for (let j=0; j < device_outputs.length; j++) {
+
+        if (!latest) {
+            latest = device_outputs[j]
+        }
+
+        if (latest.date < device_outputs[j].date) {
+            latest = device_outputs[j]
+        }
+    }
+    return latest
+}
 
 app.get("/message", function(request, response) {
 
@@ -40,29 +51,21 @@ app.get("/message", function(request, response) {
             return
         }
 
+        // console.log(result)
+
         // console.log("called 2")
 
         const date = new Date();
 
         const devices = []
         for (let i=0; i < result[0].device.length; i++) {
+
             
             const device_current = result[0].device[i]
             const output = device_current.device_output
             
             /// Start - Creating Fake Data ///
-            let latest 
-            for (let j=0; j < output.length; j++) {
-
-                if (!latest) {
-                    latest = output[j]
-                }
-
-                if (latest.date < output[j].date) {
-                    latest = output[j]
-                }
-                
-            }
+            const latest = getLatestDeviceOutput(output)
 
             const factor_yield = (0.3 * Math.random()) + 0.85
             const factor_surplus = (0.6 * Math.random()) + 0.0
@@ -122,7 +125,7 @@ app.get("/message", function(request, response) {
             "date": date,
             "devices": devices
         }
-
+        console.log(message)
         response.send(message)
     })
     .catch(function(error) {
@@ -143,7 +146,7 @@ app.put("/status", function(request, response) {
 
     smart_device.update(postcode, number, {status: status})
     .then(function(result) {
-        console.log(result)
+        // console.log(result)
         response.send(result)
     })
     .then(function(error) {
@@ -164,7 +167,7 @@ app.put("/status/device", function(request, response) {
     
     device.update(serial_number, {status: status})
     .then(function(result) {
-        console.log(result)
+        // console.log(result)
         response.send(result)
     })
     .then(function(error) {

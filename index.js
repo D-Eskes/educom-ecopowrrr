@@ -1,5 +1,6 @@
 import express from "express"
 import {Client, Device, DeviceOuput, Price} from "./lib/mongo.js"
+import {createDummyDataSmartDevice} from "./lib/dummy_data.js"
 import fetch from "node-fetch"
 import cors from "cors"
 import * as XLSX from "XLSX"
@@ -13,8 +14,6 @@ const client = new Client(device)
 const price = new Price()
 
 
-
-
 const app = express()
 app.use(cors())
 app.use(express.json())
@@ -24,27 +23,6 @@ app.use((request, result, next) => {
     result.setHeader("Access-Control-Allow-Headers", "X-Requested-With,content-type")
     next()
 })
-
-
-function cleanName(name) {
-    return name.toLowerCase().trim()
-}
-
-function createWorkBookExample() {
-    const aoaData = [
-        ['name', 'code', 'author'],
-        ['Diary', 'diary_code', 'Pagorn'],
-        ['Note', 'note_code', 'Pagorn'],
-        ['Medium', 'medium_code', 'Pagorn'],
-    ];
-
-    const workSheet = XLSX.utils.aoa_to_sheet(aoaData);
-    const workBook = XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(workBook, workSheet, 'Sheet 1');
-
-    XLSX.writeFile(workBook, './documents/spreadsheet/sample.xlsx');
-}
 
 function createWorkBook(sheets, name) {
 
@@ -57,8 +35,6 @@ function createWorkBook(sheets, name) {
 
     XLSX.writeFile(workBook, `./documents/spreadsheet/${name}.xlsx`);
 }
-
-
 
 
 
@@ -140,26 +116,28 @@ app.post("/register", function(request, response) {
     const postcode = request.query.postcode
     const number = request.query.number
 
-
-    getPostcodeData(postcode, number)
-    .then(async function(result) {
-
-        client.create({
-            name: request.query.name,
-            IBAN: request.query.IBAN,
-            postcode: postcode,
-            number: number,
-            municipality: result.municipality
+    createDummyDataSmartDevice(postcode, number).then(function(dummy) {
+        
+        getPostcodeData(postcode, number)
+        .then(async function(result) {
+    
+            client.create({
+                name: request.query.name,
+                IBAN: request.query.IBAN,
+                postcode: postcode,
+                number: number,
+                municipality: result.municipality
+            })
+    
+            updateStatusSmartDevice(postcode, number, "active")
+    
+            response.send({
+                message: "client created"
+            })
         })
-
-        updateStatusSmartDevice(postcode, number, "active")
-
-        response.send({
-            message: "client created"
+        .catch(function(error) {
+            response.send(error)
         })
-    })
-    .catch(function(error) {
-        response.send(error)
     })
 })
 
@@ -173,11 +151,15 @@ app.get("/messages", function(request, response) {
                 if (message.device_status == "inactive") {
                     return
                 }
-
-                const serial_numbers = current_client.device.map(function(device) {return device.serial_number})
+                console.log(message)
+                const serial_numbers = current_client.device.map(function(device) {
+                    return device.serial_number
+                })
                 for (let j=0; j < message.devices.length; j++) {
                     
                     const current_device = message.devices[j]
+
+                    console.log(current_device)
                     if (!serial_numbers.includes(current_device.serial_number)) {
                         device.create({
                             client_id: current_client._id.toString(),
@@ -187,8 +169,8 @@ app.get("/messages", function(request, response) {
                         updateStatusDevice(current_device.serial_number, "active")
                     }
                     
-                    if (current_device.status == "inactive") {
-                        return
+                    if (current_device.device_status == "inactive") {
+                        continue
                     }
 
                     const device_id = current_client.device.filter(device => device.serial_number == current_device.serial_number)[0]._id.toString()
@@ -222,11 +204,9 @@ function getDeviceOutputMonthLatest(year, month, device) {
     let latest = null
     for (let i=0; i < device.device_output.length; i++) {
         const device_output = device.device_output[i]
-
         const date = new Date(device_output.date)
 
         if (year != date.getFullYear()) {
-
             continue
         }
 
@@ -297,35 +277,54 @@ function getYearlySurplus(year, device) {
         if (device_output) {
             output += device_output.monthly_surplus
         }
-
     }
     return output
 }
 
 function getYearlySurplusAllDevices(year, devices) {
+
     let output = 0
     for (let j=0; j < devices.length; j++) {
 
         output += getYearlySurplus(year, devices[j])
-    
-    return output
+
     }
+    return output
 }
 
+
+async function getMonthlyPrice(year, month, device) {
+    const device_output = getDeviceOutputMonthLatest(year, month, device)
+
+    let output = 0
+    if (device_output) {
+        await getPriceDate(new Date(device_output.date)).then(function(result_price) {
+            output += device_output.monthly_surplus * result_price
+        })
+    }
+    return output
+}
+
+async function getMonthlyPriceAllDevices(year, month, devices) {
+    let output = 0
+    for (let j=0; j < devices.length; j++) {
+        const device = devices[j]
+
+        await getMonthlyPrice(year, month, device).then(function(result) {
+            output += result
+        })
+
+    }
+    return output
+}
 
 async function getYearlyPrice(year, device) {
     let output = 0
     for (let month=0; month < 12; month++) {
-        const device_output = getDeviceOutputMonthLatest(year, month, device)
-
-        // console.log(_device_output, year, month)
-        if (device_output) {
-            await getPriceDate(new Date(device_output.date)).then(function(result_price) {
-                // console.log(result_price)
-                // console.log(device_output.monthly_surplus)
-                output += device_output.monthly_surplus * result_price
-            })
-        }
+        
+        await getMonthlyPrice(year, month, device).then(function(result) {
+            output += result
+        })
     }
     return output
 }
@@ -363,13 +362,9 @@ function getYearlyOutputAllDevices(year, devices) {
 
         output += getYearlyOutput(year, devices[j])
     
-    return output
     }
+    return output
 }
-
-
-
-
 
 
 
@@ -447,12 +442,73 @@ function getSpreadsheetData1b() {
     })
 }
 
-function getSpreadsheetData3a() {
+function getSpreadsheetData2() {
 
     return client.retrieve("").then(async function(result) {
 
         const array = []
-        const headers = ["name", "revenue", "output", "surplus"]
+        const headers = ["name"]
+
+
+        const date_now = new Date()
+        const days = Math.floor((new Date(date_now.getFullYear(), date_now.getMonth() + 1) - date_now) / (24 * 3600 * 1000))
+        const factor = 1 + days / date_now.getDate()
+        
+        const year = date_now.getFullYear()
+        const month_current = date_now.getMonth()
+        for (let month=0; month < 12; month++) {
+            headers.push(month)
+        }
+
+        // console.log(result)
+        
+        array.push(headers)
+        for (let i=0; i < result.length; i++) {
+            const row = []
+            const client = result[i]
+            
+            row.push(client.name)
+
+            let prediction = 0
+            let predict = false
+            for (let month=0; month < 12; month++) {
+                
+                await getMonthlyPriceAllDevices(year, month, client.device).then(function(result) {
+          
+                    if (month_current == month) {
+                        result *= factor
+                    }
+
+                    if (!predict) {
+                        prediction += result
+                    }
+                    else {
+                        result = prediction
+                    }
+
+                    if (month_current == month) {
+                        predict = true
+                        prediction /= month + 1
+                    }
+                
+                    row.push(result)
+                })
+            }
+            array.push(row)
+        }
+
+        result = array
+        return result
+
+    })
+}
+
+function getSpreadsheetData3() {
+
+    return client.retrieve("").then(async function(result) {
+
+        const array = []
+        const headers = ["municipality", "revenue", "output", "surplus"]
         
         const year_current = new Date().getFullYear()
 
@@ -464,7 +520,7 @@ function getSpreadsheetData3a() {
         for (let i=0; i < result.length; i++) {
             const client = result[i]
 
-            if (revenue.indexOf(client.municipality) == -1) {
+            if (revenue[client.municipality] == undefined) {
                 revenue[client.municipality] = 0 
                 output[client.municipality] = 0 
                 surplus[client.municipality] = 0
@@ -478,13 +534,21 @@ function getSpreadsheetData3a() {
             
             surplus[client.municipality] += getYearlySurplusAllDevices(year_current, client.device)
 
-        
         }
 
-        console.log(array)
-        console.log(revenue)
-        console.log(output)
-        console.log(surplus)
+        for (let municipality in revenue) {
+            array.push([
+                municipality,
+                revenue[municipality],
+                output[municipality],
+                surplus[municipality]
+            ])
+        }
+
+        // console.log(array)
+        // console.log(revenue)
+        // console.log(output)
+        // console.log(surplus)
 
         result = array
         return result
@@ -494,12 +558,7 @@ function getSpreadsheetData3a() {
 
 
 
-
-getSpreadsheetData3a()
-
-
-
-app.get("/test/spreadsheet1", async function(request, response) {
+async function createSpreadsheet1() {
 
     const sheets = []
 
@@ -521,8 +580,59 @@ app.get("/test/spreadsheet1", async function(request, response) {
 
     const date_string = `${year}${month}${day}_${hour}${minute}`
     createWorkBook(sheets, `spreadsheet1_${date_string}`)
+}
+
+async function createSpreadsheet2() {
+    const sheets = []
+
+    await getSpreadsheetData2().then(function(result) { 
+        sheets.overview = result
+    })
+
+    const date = new Date()
+
+    const year = date.getFullYear()
+    const month = `${(date.getMonth() + 1)}`.padStart(2, "0")
+
+    const day = `${date.getDate()}`.padStart(2, "0")
+    const hour = `${date.getHours()}`.padStart(2, "0")
+    const minute = `${date.getMinutes()}`.padStart(2, "0")
+
+    const date_string = `${year}${month}${day}_${hour}${minute}`
+    createWorkBook(sheets, `spreadsheet2_${date_string}`)
+}
+
+async function createSpreadsheet3() {
+    const sheets = []
+
+    await getSpreadsheetData3().then(function(result) { 
+        sheets.overview = result
+    })
+
+
+    const date = new Date()
+
+    const year = date.getFullYear()
+    const month = `${(date.getMonth() + 1)}`.padStart(2, "0")
+
+    const day = `${date.getDate()}`.padStart(2, "0")
+    const hour = `${date.getHours()}`.padStart(2, "0")
+    const minute = `${date.getMinutes()}`.padStart(2, "0")
+
+    const date_string = `${year}${month}${day}_${hour}${minute}`
+    createWorkBook(sheets, `spreadsheet3_${date_string}`)
+}
+
+
+app.get("/spreadsheets", async function(request, response) {
+
+    createSpreadsheet1()
+    createSpreadsheet2()
+    createSpreadsheet3()
     
-    response.send({"message": "spreadsheet created"})
+    // getSpreadsheetData3()
+
+    response.send({"message": "spreadsheets created"})
 })
 
 
