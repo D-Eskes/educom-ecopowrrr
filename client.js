@@ -1,12 +1,12 @@
 import express from "express"
-import {SmartDevice, Device, DeviceOuput} from "./lib/mongo_smart_device.js"
+import {SmartDevice, Device, DeviceOuput} from "./lib/client.js"
 import {generateHash} from "random-hash"
 
+const PORT = 5000
 
 const device_output = new DeviceOuput()
 const device = new Device(device_output)
 const smart_device = new SmartDevice(device)
-
 
 
 const app = express()
@@ -178,9 +178,7 @@ app.put("/status/device", function(request, response) {
 })
 
 
-
-
 /// RUN ///
-app.listen(5000, function() {
+app.listen(PORT, function() {
     console.log("Running!")
 })

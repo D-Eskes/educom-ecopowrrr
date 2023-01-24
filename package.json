@@ -5,9 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "main": "nodemon index.js",
-    "client": "nodemon smart_device.js",
-    "dataset": "nodemon ./lib/create_dataset",
+    "backend": "nodemon backend.js",
+    "client": "nodemon client.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

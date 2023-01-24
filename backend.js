@@ -1,11 +1,11 @@
 import express from "express"
-import {Client, Device, DeviceOuput, Price} from "./lib/mongo.js"
+import {Client, Device, DeviceOuput, Price} from "./lib/backend.js"
 import {createDummyDataSmartDevice} from "./lib/dummy_data.js"
 import fetch from "node-fetch"
 import cors from "cors"
 import * as XLSX from "XLSX"
 
-
+const PORT = 4000
 const POSTCODE_TOKEN = "1c6f7003-33e9-4026-a5cc-203648cd9a4d"
 
 const device_output = new DeviceOuput()
@@ -198,7 +198,6 @@ app.get("/messages", function(request, response) {
 
 
 
-/// TEST ////
 function getDeviceOutputMonthLatest(year, month, device) {
 
     let latest = null
@@ -209,9 +208,6 @@ function getDeviceOutputMonthLatest(year, month, device) {
         if (year != date.getFullYear()) {
             continue
         }
-
-
-        // console.log(month, date.getMonth())
 
         if (month == date.getMonth()) {
             if (!latest) {
@@ -250,16 +246,26 @@ async function getPriceDate(date) {
                 return 0
             })
 
+            // console.log(result)
             for (let i=0; i < result.length; i++) {
-                const _price = result[i]
+                const price = result[i]
 
                 const year = date.getFullYear()
-                const month = date.getMonth() + 1
-                if (year >= _price.year && month >= _price.month) {
-                    // console.log(_price)
-                    result = _price.price / 100
-                    break
+                const month = date.getMonth()
+
+                // console.log((year < price.year), (year == price.year && month < price.month))
+                
+                if (year < price.year) {
+                    continue
                 }
+                
+                if (year == price.year && month < price.month) {
+                    continue
+                }
+
+                // console.log(price)
+                result = price.price / 100
+                
             }
             return result
         }
@@ -268,15 +274,32 @@ async function getPriceDate(date) {
 }
 
 
+/// Surplus ///
+function getMonthlySurplus(year, month, device) {
+    let output = 0
+    
+    const device_output = getDeviceOutputMonthLatest(year, month, device)
+    if (device_output) {
+        output += device_output.monthly_surplus
+    }
+    
+    return output
+}
+
+function getMonthlySurplusAllDevices(year, month, devices) {
+    let output = 0
+
+    for (let i=0; i < devices.length; i++) {
+        output += getMonthlySurplus(year, month, devices[j])
+    }
+
+    return output
+}
 
 function getYearlySurplus(year, device) {
     let output = 0
     for (let month=0; month < 12; month++) {
-        const device_output = getDeviceOutputMonthLatest(year, month, device)
-
-        if (device_output) {
-            output += device_output.monthly_surplus
-        }
+        output += getMonthlySurplus(year, month, device)
     }
     return output
 }
@@ -293,6 +316,51 @@ function getYearlySurplusAllDevices(year, devices) {
 }
 
 
+/// Yield ///
+function getMonthlyOutput(year, month, device) {
+    let output = 0
+    
+    const device_output = getDeviceOutputMonthLatest(year, month, device)
+    if (device_output) {
+        output += device_output.monthly_yield
+    }
+
+    return output
+}
+
+function getMonthlyOutputAllDevices(year, month, devices) {
+    let output = 0
+
+    for (let i=0; i < devices.length; i++) {
+        output += getMonthlyOutput(year, month, devices[j])
+    }
+
+    return output
+}
+
+function getYearlyOutput(year, device) {
+    let output = 0
+
+    for (let month=0; month < 12; month++) {
+        output += getMonthlyOutput(year, month, device)
+    }
+
+    return output
+}
+
+function getYearlyOutputAllDevices(year, devices) {
+    let output = 0
+
+    for (let j=0; j < devices.length; j++) {
+        output += getYearlyOutput(year, devices[j])
+    }
+
+    return output
+}
+
+
+
+/// Price ///
 async function getMonthlyPrice(year, month, device) {
     const device_output = getDeviceOutputMonthLatest(year, month, device)
 
@@ -309,11 +377,9 @@ async function getMonthlyPriceAllDevices(year, month, devices) {
     let output = 0
     for (let j=0; j < devices.length; j++) {
         const device = devices[j]
-
         await getMonthlyPrice(year, month, device).then(function(result) {
             output += result
         })
-
     }
     return output
 }
@@ -321,7 +387,6 @@ async function getMonthlyPriceAllDevices(year, month, devices) {
 async function getYearlyPrice(year, device) {
     let output = 0
     for (let month=0; month < 12; month++) {
-        
         await getMonthlyPrice(year, month, device).then(function(result) {
             output += result
         })
@@ -333,35 +398,9 @@ async function getYearlyPriceAllDevices(year, devices) {
     let output = 0
     for (let j=0; j < devices.length; j++) {
         const device = devices[j]
-
         await getYearlyPrice(year, device).then(function(result) {
             output += result
         })
-
-    }
-    return output
-}
-
-
-function getYearlyOutput(year, device) {
-    let output = 0
-    for (let month=0; month < 12; month++) {
-        const device_output = getDeviceOutputMonthLatest(year, month, device)
-
-        if (device_output) {
-            output += device_output.monthly_yield
-        }
-
-    }
-    return output
-}
-
-function getYearlyOutputAllDevices(year, devices) {
-    let output = 0
-    for (let j=0; j < devices.length; j++) {
-
-        output += getYearlyOutput(year, devices[j])
-    
     }
     return output
 }
@@ -391,7 +430,6 @@ function getSpreadsheetData1a() {
             row.push(client.name)
 
             for (let year=year_first; year < year_current + 1; year++) {
-                
                 await getYearlyPriceAllDevices(year, client.device).then(function(result) {
                     row.push(result)
                 })
@@ -428,9 +466,7 @@ function getSpreadsheetData1b() {
             row.push(client.name)
 
             for (let year=year_first; year < year_current + 1; year++) {
-                
                 const output = getYearlySurplusAllDevices(year, client.device)
-                
                 row.push(output)
             }
             array.push(row)
@@ -457,7 +493,9 @@ function getSpreadsheetData2() {
         const year = date_now.getFullYear()
         const month_current = date_now.getMonth()
         for (let month=0; month < 12; month++) {
-            headers.push(month)
+            const date_month = new Date()
+            date_month.setMonth(month) 
+            headers.push(date_month.toLocaleString('default', { month: 'long' }))
         }
 
         // console.log(result)
@@ -563,10 +601,10 @@ async function createSpreadsheet1() {
     const sheets = []
 
     await getSpreadsheetData1a().then(function(result) { 
-        sheets.total_revenue = result
+        sheets["revenue per customer"] = result
     })
     await getSpreadsheetData1b().then(function(result) {
-        sheets.total_purchased = result
+        sheets["surplus per customer"] = result
     })
 
     const date = new Date()
@@ -586,7 +624,7 @@ async function createSpreadsheet2() {
     const sheets = []
 
     await getSpreadsheetData2().then(function(result) { 
-        sheets.overview = result
+        sheets["expected earnings per customer"]= result
     })
 
     const date = new Date()
@@ -606,7 +644,7 @@ async function createSpreadsheet3() {
     const sheets = []
 
     await getSpreadsheetData3().then(function(result) { 
-        sheets.overview = result
+        sheets["stats per municipality"] = result
     })
 
 
@@ -636,8 +674,7 @@ app.get("/spreadsheets", async function(request, response) {
 })
 
 
-
 /// RUN ///
-app.listen(4000, function() {
+app.listen(PORT, function() {
     console.log("Running!")
 })
